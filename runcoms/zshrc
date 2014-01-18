@@ -5,10 +5,55 @@
 #   Sorin Ionescu <sorin.ionescu@gmail.com>
 #
 
+# Custom completions
+zstyle ':completion::complete:chruby:*:values' sort false
+fpath=(${ZDOTDIR:-$HOME}/.zsh/completions $fpath)
+
 # Source Prezto.
 if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
   source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
 fi
 
-# Customize to your needs...
+#
+# Custom
+#
 
+function reload! {
+  source ~/.zshrc
+}
+
+command -v fasd >/dev/null 2>&1 &&
+  eval "$(fasd --init auto)"
+
+# disable flow control
+stty -ixon -ixoff
+
+# autocorrect is annoying
+unsetopt correct_all
+
+source ~/.zsh/aliases.zsh
+source ~/.zsh/bindkeys.zsh
+source ~/.zsh/exports.zsh
+source ~/.zsh/functions.zsh
+source ~/.zsh/prompt.zsh
+if [[ -s ~/.zsh/private.zsh ]] ; then source ~/.zsh/private.zsh ; fi
+
+# matcher completion
+# https://github.com/burke/matcher/
+_matcher_complete() {
+  integer i=1
+  # local lines=("${(@f)$((git ls-files 2>/dev/null || find .) | /usr/local/bin/matcher --limit 20 ${words[CURRENT]})}")
+
+  find . | /usr/local/bin/matcher --limit 20 ${words[CURRENT]} | while read line; do
+    # compadd -U -- "$line"
+    compadd -U -2 -V $i -- "$line"
+    i=$((i+1))
+  done
+  compstate[insert]=menu
+}
+
+zle -C matcher-complete complete-word _generic
+zstyle ':completion:matcher-complete:*' completer _matcher_complete
+zstyle ':completion:matcher-complete:*' menu-select
+
+bindkey '^X^T' matcher-complete
